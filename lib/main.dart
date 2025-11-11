@@ -172,6 +172,119 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
     );
   }
 
+  void _editExpense(int index, String name, double amount, String category,
+    DateTime date, String details) {
+  setState(() {
+    _expenses[index] = Expense(
+      name: name,
+      amount: amount,
+      category: category,
+      date: date,
+      details: details,
+    );
+  });
+} 
+
+void _openEditExpenseDialog(int index) {
+  // get current values
+  Expense e = _expenses[index];
+  String name = e.name;
+  String amount = e.amount.toString();
+  String category = e.category;
+  String details = e.details;
+  DateTime selectedDate = e.date;
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(builder: (context, setStateDialog) {
+        return AlertDialog(
+          title: const Text('Edit Expense'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Expense Name'),
+                  controller: TextEditingController(text: name),
+                  onChanged: (value) => name = value,
+                ),
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Amount'),
+                  controller: TextEditingController(text: amount),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) => amount = value,
+                ),
+                DropdownButtonFormField(
+                  initialValue: category,
+                  items: const [
+                    DropdownMenuItem(value: 'transpo', child: Text('Transpo')),
+                    DropdownMenuItem(value: 'food', child: Text('Food')),
+                    DropdownMenuItem(value: 'education', child: Text('Education')),
+                    DropdownMenuItem(value: 'wants', child: Text('Wants')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setStateDialog(() => category = value);
+                    }
+                  },
+                ),
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Details'),
+                  controller: TextEditingController(text: details),
+                  onChanged: (value) => details = value,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Text('Date: ${selectedDate.toLocal().toString().split(' ')[0]}'),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () async {
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                        );
+                        if (pickedDate != null) {
+                          setStateDialog(() => selectedDate = pickedDate);
+                        }
+                      },
+                      child: const Text('Select Date'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (name.isNotEmpty && double.tryParse(amount) != null) {
+                  _editExpense(
+                    index,
+                    name,
+                    double.parse(amount),
+                    category,
+                    selectedDate,
+                    details,
+                  );
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      });
+    },
+  );
+} 
+
   @override
   Widget build(BuildContext context) {
     double total = _expenses.fold(0, (sum, e) => sum + e.amount);
@@ -203,6 +316,7 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                     itemBuilder: (context, index) {
                       final expense = _expenses[index];
                       return ListTile(
+                        onTap: () => _openEditExpenseDialog(index), // <--- ADD THIS
                         title: Text(expense.name),
                         subtitle: Text(
                           '₱${expense.amount.toStringAsFixed(2)} • ${expense.category}\n'
